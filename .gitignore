@@ -9,6 +9,12 @@
 data/*
 !data/.gitkeep
 
+# SSL-сертификаты и ключи Let's Encrypt (секреты!)
+certbot/conf/*
+certbot/www/*
+!certbot/conf/.gitkeep
+!certbot/www/.gitkeep
+
 # Python
 __pycache__/
 *.pyc

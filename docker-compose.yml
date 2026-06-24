@@ -8,12 +8,39 @@ services:
     env_file:
       - .env
     environment:
-      # Файл SQLite кладётся в каталог /data, который примонтирован к ./data
-      # рядом с проектом — так база видна как обычный файл на диске.
+      # Файл SQLite кладётся в каталог /data, примонтированный к ./data рядом
+      # с проектом — так база видна как обычный файл на диске.
       DATABASE_URL: "sqlite:////data/planner_pay.db"
-    ports:
-      - "${APP_PORT:-8000}:8000"
     volumes:
       - ./data:/data
+    expose:
+      - "8000"            # доступен только внутри docker-сети, наружу — через nginx
 
-# Бэкап базы — это просто файл ./data/planner_pay.db
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: planner-pay-nginx
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    # Раз в 6 часов перечитываем конфиг — чтобы подхватить продлённый сертификат.
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+
+  certbot:
+    image: certbot/certbot
+    container_name: planner-pay-certbot
+    restart: unless-stopped
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    # Каждые 12 часов пытаемся продлить сертификаты.
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
+
+# Первичный выпуск сертификата: ./init-letsencrypt.sh
+# Бэкап базы — файл ./data/planner_pay.db

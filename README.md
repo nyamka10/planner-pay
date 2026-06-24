@@ -28,33 +28,50 @@ Python · FastAPI · SQLite (SQLAlchemy) · Jinja2 · APScheduler · Docker Comp
 
 ## Запуск
 
-```bash
-cp .env.example .env        # заполните SECRET_KEY, ADMIN_*, SMTP_*
-docker compose up --build
-```
-
-Откройте <http://localhost:8000>.
-
-Войдите администратором (`ADMIN_USERNAME` / `ADMIN_PASSWORD` из `.env`).
-Новые пользователи регистрируются на `/register`, а вы подтверждаете их
-в разделе **Админ**.
-
-База данных — обычный файл **`./data/planner_pay.db`** (бинд-маунт), его легко
-бэкапить и переносить.
-
-> Без настроенного SMTP письма не отправляются, а пишутся в лог контейнера —
-> удобно для локальной разработки. Проверить отправку: **Настройки → Отправить
-> тестовое письмо**.
-
-## Локальный запуск без Docker
+Боевой запуск с доменом и HTTPS описан ниже («Деплой на сервере с доменом и SSL»).
+Для **локальной разработки** удобнее запускать приложение напрямую, без nginx:
 
 ```bash
+cp .env.example .env                             # заполните SECRET_KEY, ADMIN_*, SMTP_*
 python -m venv .venv && source .venv/bin/activate
 pip install -r app/requirements.txt
 export $(grep -v '^#' .env | xargs)              # подхватить переменные
 export DATABASE_URL="sqlite:///./data/planner_pay.db"
 uvicorn app.main:app --reload                    # из корня репозитория
 ```
+
+Откройте <http://localhost:8000>. Войдите администратором
+(`ADMIN_USERNAME` / `ADMIN_PASSWORD` из `.env`). Новые пользователи регистрируются
+на `/register`, а вы подтверждаете их в разделе **Админ**.
+
+База данных — обычный файл **`./data/planner_pay.db`**, его легко бэкапить.
+
+> Без настроенного SMTP письма не отправляются, а пишутся в лог — удобно для
+> разработки. Проверить отправку: **Настройки → Отправить тестовое письмо**.
+
+## Деплой на сервере с доменом и SSL
+
+В составе есть **nginx** (reverse-proxy, 80/443) и **certbot** (Let's Encrypt,
+авто-продление). Домен — `planner-pay.it.ru`, почта для сертификата — `ppankin@it.ru`
+(заданы в `nginx/conf.d/planner-pay.conf` и `init-letsencrypt.sh`).
+
+1. Заведите **A-запись** `planner-pay.it.ru` → IP сервера. Откройте порты 80 и 443.
+2. На сервере:
+   ```bash
+   git clone <repo> && cd planner-pay
+   cp .env.example .env        # заполните SECRET_KEY, ADMIN_*, SMTP_*
+   docker compose build
+   ./init-letsencrypt.sh       # разовый выпуск сертификата
+   docker compose up -d        # поднять всё
+   ```
+3. Готово: <https://planner-pay.it.ru>
+
+Приложение наружу напрямую не торчит (порт 8000 виден только внутри docker-сети) —
+весь трафик идёт через nginx по HTTPS. Сертификат продлевается автоматически
+(certbot раз в 12 ч, nginx перечитывает конфиг раз в 6 ч).
+
+> Для отладки выпуска в `init-letsencrypt.sh` есть `staging=1` (тестовый сертификат
+> Let's Encrypt без жёстких лимитов). Сменить домен/почту — там же и в конфиге nginx.
 
 ## Как работают напоминания
 
@@ -75,8 +92,12 @@ app/
   reminders.py       логика рассылки и продления
   scheduler.py       ежедневная фоновая задача
   routers/           auth, dashboard, payments, admin, settings
-  templates/         Jinja2-шаблоны
+  templates/         Jinja2-шаблоны (+ _icons.html — SVG-иконки)
   static/            CSS и JS (тепловая карта, тема, модалки)
+nginx/conf.d/        конфиг reverse-proxy + HTTPS
+certbot/             сертификаты Let's Encrypt (создаётся при выпуске)
+init-letsencrypt.sh  разовый выпуск SSL-сертификата
+docker-compose.yml   web + nginx + certbot
 ```
 
 ## Идеи для доработки
