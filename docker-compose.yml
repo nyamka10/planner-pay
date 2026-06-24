@@ -1,0 +1,19 @@
+services:
+  web:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: planner-pay
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Файл SQLite кладётся в каталог /data, который примонтирован к ./data
+      # рядом с проектом — так база видна как обычный файл на диске.
+      DATABASE_URL: "sqlite:////data/planner_pay.db"
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - ./data:/data
+
+# Бэкап базы — это просто файл ./data/planner_pay.db

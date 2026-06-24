@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ settings.app_name }}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007aff' stroke-width='2' stroke-linecap='round'><rect width='20' height='14' x='2' y='5' rx='2.5'/><path d='M2 10h20'/></svg>">
+</head>
+<body>
+{% if current_user %}
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/" title="На дашборд">{{ icon('card', 20) }} {{ settings.app_name }}</a>
+    <nav class="nav">
+      <a href="/payments" class="{% block nav_pay %}{% endblock %}">Оплаты</a>
+      {% if current_user.is_admin %}
+      <a href="/admin" class="{% block nav_admin %}{% endblock %}">Админ</a>
+      {% endif %}
+    </nav>
+    <div class="topbar-right">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Сменить тему">{{ icon('moon', 17, cls='icon-moon') }}{{ icon('sun', 17, cls='icon-sun') }}</button>
+      <div class="usermenu" id="usermenu">
+        <button class="avatar" type="button" onclick="toggleUserMenu(event)" aria-label="Меню пользователя">{{ current_user.username[0]|upper }}</button>
+        <div class="usermenu-dropdown">
+          <div class="usermenu-name">{{ current_user.username }}</div>
+          <div class="usermenu-email">{{ current_user.recipient }}</div>
+          <a href="/settings">{{ icon('settings', 16) }} Настройки</a>
+          <a href="/logout">{{ icon('logout', 16) }} Выйти</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+{% endif %}
+
+<main class="container {% block main_class %}{% endblock %}">
+  {% block content %}{% endblock %}
+</main>
+
+<script src="/static/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

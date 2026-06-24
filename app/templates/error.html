@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Ошибка {{ code }}{% endblock %}
+{% block main_class %}auth-page{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <div class="auth-logo" style="background:linear-gradient(135deg,#ff453a,#ff9500);box-shadow:0 8px 24px rgba(255,69,58,.35);">{{ icon('alert', 30, stroke=2) }}</div>
+  <h1>{{ code }}</h1>
+  <p class="auth-sub">{{ message }}</p>
+  <a href="/" class="btn btn-secondary btn-block">На главную</a>
+</div>
+{% endblock %}

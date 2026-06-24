@@ -1,0 +1,20 @@
+# Секреты и окружение
+.env
+
+# База данных (бинд-маунт ./data)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+data/*
+!data/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Прочее
+.DS_Store
+smoketest.db

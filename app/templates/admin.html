@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Админ — {{ settings.app_name }}{% endblock %}
+{% block nav_admin %}active{% endblock %}
+{% block content %}
+
+<div class="page-head"><h1>Администрирование</h1></div>
+
+<div class="card">
+  <div class="card-head"><h2>{{ icon('hourglass', 17) }} Заявки на регистрацию {% if pending %}<span class="badge">{{ pending|length }}</span>{% endif %}</h2></div>
+  {% if pending %}
+  <table class="ptable">
+    <thead><tr><th>Логин</th><th>Почта</th><th>Уведомления</th><th>Создан</th><th></th></tr></thead>
+    <tbody>
+      {% for u in pending %}
+      <tr>
+        <td><b>{{ u.username }}</b></td>
+        <td>{{ u.email }}</td>
+        <td>{{ u.notify_email }}</td>
+        <td class="nowrap muted">{{ u.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+        <td class="actions">
+          <form method="post" action="/admin/users/{{ u.id }}/approve" class="inline">
+            <button class="btn btn-sm btn-success">{{ icon('check', 15) }} Подтвердить</button>
+          </form>
+          <form method="post" action="/admin/users/{{ u.id }}/reject" class="inline" onsubmit="return confirm('Отклонить и удалить заявку?')">
+            <button class="btn btn-sm btn-danger">{{ icon('x', 15) }} Отклонить</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty"><div>{{ icon('check-circle', 40, stroke=1.4) }}</div>Новых заявок нет</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>{{ icon('user', 17) }} Пользователи</h2></div>
+  <table class="ptable">
+    <thead><tr><th>Логин</th><th>Почта</th><th>Оплат</th><th>Роль</th></tr></thead>
+    <tbody>
+      {% for u in approved %}
+      <tr>
+        <td><b>{{ u.username }}</b></td>
+        <td>{{ u.recipients_str }}</td>
+        <td>{{ counts[u.id] }}</td>
+        <td>{% if u.is_admin %}<span class="tag tag-paid">админ</span>{% else %}<span class="tag">пользователь</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

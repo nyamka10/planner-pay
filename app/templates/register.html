@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Регистрация — {{ settings.app_name }}{% endblock %}
+{% block main_class %}auth-page{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <div class="auth-logo">{{ icon('card', 30, stroke=2) }}</div>
+  <h1>Регистрация</h1>
+  <p class="auth-sub">Аккаунт активирует администратор</p>
+
+  {% if error %}<div class="alert alert-error">{{ icon('alert', 18) }} {{ error }}</div>{% endif %}
+
+  <form method="post" action="/register">
+    <label>Логин
+      <input name="username" value="{{ username or '' }}" required autofocus>
+    </label>
+    <label>Почта для входа / контактов
+      <input name="email" type="email" value="{{ email or '' }}" required>
+    </label>
+    <label>Почта для напоминаний <span class="hint">(если другая)</span>
+      <input name="notify_email" type="email" placeholder="можно оставить пустым">
+    </label>
+    <label>Пароль
+      <input name="password" type="password" required>
+    </label>
+    <label>Повторите пароль
+      <input name="password2" type="password" required>
+    </label>
+    <button type="submit" class="btn btn-primary btn-block">Отправить заявку</button>
+  </form>
+  <p class="auth-foot">Уже есть аккаунт? <a href="/login">Войти</a></p>
+</div>
+{% endblock %}

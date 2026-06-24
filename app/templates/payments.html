@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Оплаты — {{ settings.app_name }}{% endblock %}
+{% block nav_pay %}active{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Мои оплаты</h1>
+  <button class="btn btn-primary" onclick="openModal('add-modal')">{{ icon('plus', 16) }} Новая оплата</button>
+</div>
+
+{% if error %}<div class="alert alert-error">{{ icon('alert', 18) }} {{ error }}</div>{% endif %}
+
+<div class="tabs">
+  <a href="/payments?show=all" class="{% if show == 'all' %}active{% endif %}">Все</a>
+  <a href="/payments?show=active" class="{% if show == 'active' %}active{% endif %}">Активные</a>
+  <a href="/payments?show=paid" class="{% if show == 'paid' %}active{% endif %}">Оплаченные</a>
+</div>
+
+<div class="card">
+  {% if payments %}
+  <table class="ptable">
+    <thead>
+      <tr><th>Дата</th><th>Сервис</th><th>Сумма</th><th>Описание</th><th>Статус</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for p in payments %}
+      {% set days = (p.due_date - today).days %}
+      <tr class="{% if p.is_paid %}row-paid{% endif %}">
+        <td class="nowrap">
+          {{ p.due_date.strftime('%d.%m.%Y') }}
+          {% if not p.is_paid %}
+            {% if days < 0 %}<span class="tag tag-overdue">просрочено</span>
+            {% elif days <= 1 %}<span class="tag tag-urgent">скоро</span>
+            {% elif days <= 14 %}<span class="tag tag-soon">{{ days }} дн.</span>{% endif %}
+          {% endif %}
+        </td>
+        <td><b>{{ p.service }}</b></td>
+        <td class="nowrap">{{ '{:,.2f}'.format(p.amount).replace(',', ' ') }} {{ settings.currency }}</td>
+        <td class="desc-cell">{{ p.description }}</td>
+        <td>{% if p.is_paid %}<span class="tag tag-paid">оплачено</span>{% else %}<span class="tag">активно</span>{% endif %}</td>
+        <td class="actions">
+          {% if not p.is_paid %}
+          <form method="post" action="/payments/{{ p.id }}/paid" class="inline">
+            <button class="btn btn-sm btn-success btn-icon" title="Отметить оплаченным">{{ icon('check', 16) }}</button>
+          </form>
+          {% endif %}
+          <button class="btn btn-sm btn-ghost" title="Продлить"
+            onclick='openRenew({{ p.id }}, "{{ p.due_date.isoformat() }}", {{ p.amount }}, {{ p.service|tojson }})'>{{ icon('renew', 15) }} Продлить</button>
+          <button class="btn btn-sm btn-ghost btn-icon" title="Изменить"
+            onclick='openEdit({{ p.id }}, "{{ p.due_date.isoformat() }}", {{ p.service|tojson }}, {{ p.amount }}, {{ p.description|tojson }})'>{{ icon('edit', 15) }}</button>
+          <form method="post" action="/payments/{{ p.id }}/delete" class="inline" onsubmit="return confirm('Удалить запись?')">
+            <button class="btn btn-sm btn-danger btn-icon" title="Удалить">{{ icon('trash', 15) }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty"><div>{{ icon('inbox', 40, stroke=1.4) }}</div>Пока нет ни одной оплаты. Нажмите «Новая оплата».</div>
+  {% endif %}
+</div>
+
+<!-- Модалка: добавить -->
+<div class="modal" id="add-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><h2>Новая оплата</h2><button class="modal-close" onclick="closeModal('add-modal')">{{ icon('x', 16) }}</button></div>
+    <form method="post" action="/payments">
+      <label>Дата <input type="date" name="due_date" min="{{ today.isoformat() }}" required></label>
+      <label>Сервис <input name="service" placeholder="Netflix, Аренда, Хостинг…" required></label>
+      <label>Сумма <input type="number" step="0.01" min="0" name="amount" required></label>
+      <label>Описание <textarea name="description" rows="2" placeholder="необязательно"></textarea></label>
+      <button class="btn btn-primary btn-block">Сохранить</button>
+    </form>
+  </div>
+</div>
+
+<!-- Модалка: продлить -->
+<div class="modal" id="renew-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><h2>Продлить оплату</h2><button class="modal-close" onclick="closeModal('renew-modal')">{{ icon('x', 16) }}</button></div>
+    <p class="muted">Текущая запись «<span id="renew-service"></span>» будет помечена оплаченной, а на следующий период создастся новая.</p>
+    <form method="post" id="renew-form">
+      <label>Дата следующего платежа <input type="date" name="due_date" id="renew-date" min="{{ today.isoformat() }}" required></label>
+      <label>Сумма <input type="number" step="0.01" min="0" name="amount" id="renew-amount" required></label>
+      <button class="btn btn-primary btn-block">Продлить</button>
+    </form>
+  </div>
+</div>
+
+<!-- Модалка: редактировать -->
+<div class="modal" id="edit-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><h2>Изменить оплату</h2><button class="modal-close" onclick="closeModal('edit-modal')">{{ icon('x', 16) }}</button></div>
+    <form method="post" id="edit-form">
+      <label>Дата <input type="date" name="due_date" id="edit-date" min="{{ today.isoformat() }}" required></label>
+      <label>Сервис <input name="service" id="edit-service" required></label>
+      <label>Сумма <input type="number" step="0.01" min="0" name="amount" id="edit-amount" required></label>
+      <label>Описание <textarea name="description" id="edit-description" rows="2"></textarea></label>
+      <button class="btn btn-primary btn-block">Сохранить</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

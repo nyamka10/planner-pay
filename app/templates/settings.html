@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Настройки — {{ settings.app_name }}{% endblock %}
+{% block content %}
+
+<div class="page-head"><h1>Настройки</h1></div>
+
+{% if error %}<div class="alert alert-error">{{ icon('alert', 18) }} {{ error }}</div>{% endif %}
+{% if info %}<div class="alert alert-info">{{ icon('check-circle', 18) }} {{ info }}</div>{% endif %}
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-head"><h2>{{ icon('mail', 17) }} Почты для напоминаний</h2></div>
+    <p class="muted">Напоминания приходят на <b>все</b> указанные адреса. Можно добавить несколько.</p>
+    <form method="post" action="/settings/email" id="email-form">
+      <div id="email-list">
+        {% for e in current_user.recipients %}
+        <div class="email-row">
+          <input type="email" name="notify_emails" value="{{ e }}" placeholder="name@example.com" required>
+          <button type="button" class="btn btn-danger btn-icon" onclick="removeEmail(this)" title="Удалить адрес">{{ icon('trash', 16) }}</button>
+        </div>
+        {% endfor %}
+      </div>
+    </form>
+    <form method="post" action="/settings/test-email" id="test-form"></form>
+    <div class="btn-row">
+      <button type="button" class="btn btn-ghost btn-icon" onclick="addEmail()" title="Добавить почту">{{ icon('plus', 16) }}</button>
+      <button type="submit" form="email-form" class="btn btn-primary btn-icon" title="Сохранить">{{ icon('save', 16) }}</button>
+      <button type="submit" form="test-form" class="btn btn-secondary btn-icon" title="Отправить тестовое письмо на все адреса">{{ icon('send', 16) }}</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>{{ icon('lock', 17) }} Смена пароля</h2></div>
+    <form method="post" action="/settings/password" id="password-form">
+      <label>Текущий пароль <input type="password" name="old_password" required></label>
+      <label>Новый пароль <input type="password" name="new_password" required></label>
+      <label>Повторите новый пароль <input type="password" name="new_password2" required></label>
+      <button class="btn btn-primary">Обновить пароль</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function addEmail(value) {
+  const list = document.getElementById("email-list");
+  const row = document.createElement("div");
+  row.className = "email-row";
+  const trash = '<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg>';
+  row.innerHTML =
+    '<input type="email" name="notify_emails" placeholder="name@example.com" required>' +
+    '<button type="button" class="btn btn-danger btn-icon" onclick="removeEmail(this)" title="Удалить адрес">' + trash + '</button>';
+  list.appendChild(row);
+  if (typeof value === "string") row.querySelector("input").value = value;
+  row.querySelector("input").focus();
+}
+function removeEmail(btn) {
+  const list = document.getElementById("email-list");
+  btn.closest(".email-row").remove();
+  if (!list.querySelector(".email-row")) addEmail(); // не оставляем пусто
+}
+// Если адресов вообще нет — показываем одно пустое поле.
+if (!document.querySelector("#email-list .email-row")) addEmail();
+</script>
+{% endblock %}

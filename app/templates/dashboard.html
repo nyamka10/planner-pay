@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Дашборд — {{ settings.app_name }}{% endblock %}
+{% block nav_home %}active{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>Дашборд</h1>
+    <p class="muted">Привет, {{ current_user.username }} — вот твои оплаты за {{ year }} год.</p>
+  </div>
+  <div class="head-actions">
+    <button class="btn btn-secondary" onclick="openModal('digest-modal')">{{ icon('send', 16) }} Отправить письмо</button>
+    <a href="/payments" class="btn btn-primary">{{ icon('plus', 16) }} Новая оплата</a>
+  </div>
+</div>
+
+{% if pending_count %}
+<div class="alert alert-accent">
+  {{ icon('user', 18) }}
+  <span>Новые заявки на регистрацию: <b>{{ pending_count }}</b> — требуют рассмотрения.</span>
+  <a href="/admin" class="btn btn-sm btn-primary">Рассмотреть</a>
+</div>
+{% endif %}
+
+{% if digest_msg %}<div class="alert alert-info">{{ icon('check-circle', 18) }} {{ digest_msg }}</div>{% endif %}
+{% if digest_err %}<div class="alert alert-error">{{ icon('alert', 18) }} {{ digest_err }}</div>{% endif %}
+
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">Всего за год</div>
+    <div class="stat-value">{{ '{:,.0f}'.format(year_total).replace(',', ' ') }} {{ settings.currency }}</div>
+  </div>
+  <div class="stat-card stat-paid">
+    <div class="stat-label">Оплачено</div>
+    <div class="stat-value">{{ '{:,.0f}'.format(paid_total).replace(',', ' ') }} {{ settings.currency }}</div>
+  </div>
+  <div class="stat-card stat-upcoming">
+    <div class="stat-label">Предстоит</div>
+    <div class="stat-value">{{ '{:,.0f}'.format(upcoming_total).replace(',', ' ') }} {{ settings.currency }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>{{ icon('activity', 17) }} Активность оплат</h2>
+    <div class="year-nav">
+      <a href="/?year={{ prev_year }}" class="btn btn-ghost btn-icon">{{ icon('chevron-left', 16) }}</a>
+      <span class="year-label">{{ year }}</span>
+      <a href="/?year={{ next_year }}" class="btn btn-ghost btn-icon">{{ icon('chevron-right', 16) }}</a>
+    </div>
+  </div>
+
+  <div class="heatmap-wrap">
+    <div class="heatmap">
+      <div class="heatmap-months" style="--cols: {{ weeks|length }}">
+        {% for ml in month_labels %}
+        <span class="month-label" style="grid-column: {{ ml.col + 1 }}">{{ ml.label }}</span>
+        {% endfor %}
+      </div>
+      <div class="heatmap-body">
+        <div class="weekday-labels">
+          <span>Пн</span><span></span><span>Ср</span><span></span><span>Пт</span><span></span><span></span>
+        </div>
+        <div class="heatmap-grid">
+          {% for week in weeks %}
+          <div class="week-col">
+            {% for day in week %}
+            <div class="day-cell level-{{ day.level }}
+                        {% if day.alt_month %}m-alt{% endif %}
+                        {% if not day.in_year %}out{% endif %}
+                        {% if day.is_today %}today{% endif %}
+                        {% if day.count %}has-items{% endif %}"
+                 {% if day.count %}
+                 data-date="{{ day.date }}"
+                 data-total="{{ '{:,.0f}'.format(day.total).replace(',', ' ') }}"
+                 data-items='{{ day["payments"]|tojson }}'
+                 {% endif %}></div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="heatmap-legend">
+      <span class="muted">Меньше</span>
+      <span class="day-cell level-0"></span>
+      <span class="day-cell level-1"></span>
+      <span class="day-cell level-2"></span>
+      <span class="day-cell level-3"></span>
+      <span class="day-cell level-4"></span>
+      <span class="muted">Больше</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-head"><h2>{{ icon('wallet', 17) }} Расходы по месяцам</h2></div>
+    <div class="months-bars">
+      {% for m in months_summary %}
+      <div class="month-bar {% if m.is_current %}current{% endif %}" title="{{ m.name }}: {{ '{:,.0f}'.format(m.total).replace(',', ' ') }} {{ settings.currency }}">
+        <div class="bar-amount">{{ '{:,.0f}'.format(m.total).replace(',', ' ') if m.total else '' }}</div>
+        <div class="bar-col">
+          {% if m.total %}
+          <div class="bar" style="height: {{ [(m.total / max_month * 130)|round, 3]|max }}px">
+            <div class="seg upcoming" style="flex: {{ m.upcoming }}"></div>
+            <div class="seg paid" style="flex: {{ m.paid }}"></div>
+          </div>
+          {% endif %}
+        </div>
+        <div class="bar-label">{{ m.short }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="legend-inline">
+      <span><i class="dot paid"></i> Оплачено</span>
+      <span><i class="dot upcoming"></i> Предстоит</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>{{ icon('clock', 17) }} Ближайшие оплаты</h2></div>
+    {% if upcoming %}
+    <ul class="upcoming-list">
+      {% for p in upcoming %}
+      {% set days = (p.due_date - today).days %}
+      <li>
+        <div class="up-date">
+          <span class="up-day">{{ p.due_date.strftime('%d.%m') }}</span>
+          <span class="up-badge {% if days <= 1 %}urgent{% elif days <= 14 %}soon{% endif %}">
+            {% if days == 0 %}сегодня{% elif days == 1 %}завтра{% else %}через {{ days }} дн.{% endif %}
+          </span>
+        </div>
+        <div class="up-info">
+          <div class="up-service">{{ p.service }}</div>
+          {% if p.description %}<div class="up-desc">{{ p.description }}</div>{% endif %}
+        </div>
+        <div class="up-amount">{{ '{:,.0f}'.format(p.amount).replace(',', ' ') }} {{ settings.currency }}</div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty"><div>{{ icon('check-circle', 40, stroke=1.4) }}</div>Нет предстоящих оплат</div>
+    {% endif %}
+  </div>
+</div>
+
+<div id="tooltip" class="tooltip" hidden></div>
+
+<!-- Модалка: ручная отправка письма -->
+<div class="modal" id="digest-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><h2>Отправить письмо</h2><button class="modal-close" onclick="closeModal('digest-modal')">{{ icon('x', 16) }}</button></div>
+    <p class="muted">Сейчас на {{ current_user.recipients_str }} уйдёт письмо со списком предстоящих оплат за выбранный период.</p>
+    <form method="post" action="/send-digest">
+      <label>Период
+        <select name="period">
+          <option value="7">Ближайшие 7 дней</option>
+          <option value="14" selected>Ближайшие 14 дней</option>
+          <option value="30">Ближайшие 30 дней</option>
+          <option value="90">Ближайшие 90 дней</option>
+          <option value="0">Все предстоящие</option>
+        </select>
+      </label>
+      <button class="btn btn-primary btn-block">Отправить сейчас</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>initHeatmap("{{ settings.currency }}");</script>
+{% endblock %}

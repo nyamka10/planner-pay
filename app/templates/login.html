@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Вход — {{ settings.app_name }}{% endblock %}
+{% block main_class %}auth-page{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <div class="auth-logo">{{ icon('card', 30, stroke=2) }}</div>
+  <h1>{{ settings.app_name }}</h1>
+  <p class="auth-sub">Напоминания об оплатах</p>
+
+  {% if error %}<div class="alert alert-error">{{ icon('alert', 18) }} {{ error }}</div>{% endif %}
+  {% if info %}<div class="alert alert-info">{{ icon('check-circle', 18) }} {{ info }}</div>{% endif %}
+
+  <form method="post" action="/login">
+    <label>Логин
+      <input name="username" autocomplete="username" required autofocus>
+    </label>
+    <label>Пароль
+      <input name="password" type="password" autocomplete="current-password" required>
+    </label>
+    <button type="submit" class="btn btn-primary btn-block">Войти</button>
+  </form>
+  <p class="auth-foot">Нет аккаунта? <a href="/register">Зарегистрироваться</a></p>
+</div>
+{% endblock %}
