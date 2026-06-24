@@ -115,6 +115,53 @@ def digest_email_html(payments: list, days, today) -> str:
 </div>"""
 
 
+def monthly_report_email_html(payments: list, month_label: str, total: float, paid: float, today) -> str:
+    """Ежемесячный отчёт: все оплаты месяца со статусами и итогами."""
+    upcoming = total - paid
+    rows = ""
+    for p in payments:
+        if p.is_paid:
+            status = '<span style="color:#1a7f37;font-size:12px;font-weight:600;">оплачено</span>'
+            tr_style = "opacity:.6;"
+        else:
+            status = '<span style="color:#9a6700;font-size:12px;font-weight:600;">предстоит</span>'
+            tr_style = ""
+        rows += f"""\
+        <tr style="{tr_style}">
+          <td style="padding:10px 8px;border-bottom:1px solid #d0d7de;white-space:nowrap;"><b>{p.due_date:%d.%m}</b></td>
+          <td style="padding:10px 8px;border-bottom:1px solid #d0d7de;"><b>{p.service}</b></td>
+          <td style="padding:10px 8px;border-bottom:1px solid #d0d7de;text-align:right;white-space:nowrap;">{p.amount:,.2f} {settings.currency}</td>
+          <td style="padding:10px 8px;border-bottom:1px solid #d0d7de;text-align:right;">{status}</td>
+        </tr>"""
+
+    return f"""\
+<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f6f8fa;padding:24px;">
+  <div style="max-width:600px;margin:0 auto;background:#fff;border:1px solid #d0d7de;border-radius:12px;overflow:hidden;">
+    <div style="background:#0d1117;color:#fff;padding:18px 24px;font-size:18px;font-weight:600;">
+      {settings.app_name}: отчёт за {month_label}
+    </div>
+    <div style="padding:24px;">
+      <div style="display:flex;gap:12px;margin-bottom:20px;">
+        <div style="flex:1;background:#f6f8fa;border:1px solid #d0d7de;border-radius:10px;padding:14px;">
+          <div style="font-size:12px;color:#57606a;">Всего за месяц</div>
+          <div style="font-size:22px;font-weight:700;">{total:,.0f} {settings.currency}</div>
+        </div>
+        <div style="flex:1;background:#f6f8fa;border:1px solid #d0d7de;border-radius:10px;padding:14px;">
+          <div style="font-size:12px;color:#57606a;">Предстоит</div>
+          <div style="font-size:22px;font-weight:700;color:#9a6700;">{upcoming:,.0f} {settings.currency}</div>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;color:#1f2328;">
+        {rows}
+      </table>
+      <p style="margin:20px 0 0;font-size:13px;color:#8b949e;">
+        Автоматический отчёт сервиса {settings.app_name} в начале месяца.
+      </p>
+    </div>
+  </div>
+</div>"""
+
+
 def reminder_email_html(service: str, amount: float, due_date, days_left: int, description: str) -> str:
     when = "завтра" if days_left == 1 else f"через {days_left} дн."
     desc_block = (

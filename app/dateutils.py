@@ -2,6 +2,16 @@
 import calendar
 from datetime import date
 
+MONTHS_RU = [
+    "январь", "февраль", "март", "апрель", "май", "июнь",
+    "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь",
+]
+
+
+def month_label_ru(d: date) -> str:
+    """Например: 'июнь 2026'."""
+    return f"{MONTHS_RU[d.month - 1]} {d.year}"
+
 
 def add_months(d: date, months: int) -> date:
     """Прибавляет месяцы к дате, корректно обрабатывая концы месяцев
