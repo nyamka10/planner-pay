@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -78,13 +78,14 @@ app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, max_age=se
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     # Редиректы из зависимостей авторизации (302 + Location).
-    if exc.status_code == 302 and exc.headers and "Location" in exc.headers:
-        return RedirectResponse(exc.headers["Location"], status_code=302)
+    if exc.status_code in (301, 302, 303, 307, 308) and exc.headers and "Location" in exc.headers:
+        return RedirectResponse(exc.headers["Location"], status_code=exc.status_code)
     if exc.status_code == 403:
         return templates.TemplateResponse(request, "error.html", {"message": "Доступ запрещён", "code": 403}, status_code=403)
     if exc.status_code == 404:
         return templates.TemplateResponse(request, "error.html", {"message": "Страница не найдена", "code": 404}, status_code=404)
-    raise exc
+    # Любой другой статус (405, 401, …) отдаём как есть, а не превращаем в 500.
+    return PlainTextResponse(exc.detail or "", status_code=exc.status_code, headers=exc.headers)
 
 
 app.include_router(auth.router)
