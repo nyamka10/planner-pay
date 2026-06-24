@@ -15,6 +15,9 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
+# Игнорируем docker-compose.override.yml (локальный) и включаем прод-профиль.
+dc="docker compose -f docker-compose.yml --profile prod"
+
 if [ -d "$data_path/conf/live/$domains" ]; then
   read -p "Сертификат для $domains уже есть. Перевыпустить и заменить? (y/N) " decision
   if [ "$decision" != "Y" ] && [ "$decision" != "y" ]; then
@@ -32,17 +35,17 @@ fi
 echo "### Создаю временный самоподписанный сертификат для $domains ..."
 path="/etc/letsencrypt/live/$domains"
 mkdir -p "$data_path/conf/live/$domains"
-docker compose run --rm --entrypoint "\
+$dc run --rm --entrypoint "\
   openssl req -x509 -nodes -newkey rsa:$rsa_key_size -days 1 \
     -keyout '$path/privkey.pem' \
     -out '$path/fullchain.pem' \
     -subj '/CN=localhost'" certbot
 
 echo "### Запускаю nginx ..."
-docker compose up --force-recreate -d nginx
+$dc up --force-recreate -d nginx
 
 echo "### Удаляю временный сертификат ..."
-docker compose run --rm --entrypoint "\
+$dc run --rm --entrypoint "\
   rm -Rf /etc/letsencrypt/live/$domains && \
   rm -Rf /etc/letsencrypt/archive/$domains && \
   rm -Rf /etc/letsencrypt/renewal/$domains.conf" certbot
@@ -61,7 +64,7 @@ esac
 staging_arg=""
 if [ "$staging" != "0" ]; then staging_arg="--staging"; fi
 
-docker compose run --rm --entrypoint "\
+$dc run --rm --entrypoint "\
   certbot certonly --webroot -w /var/www/certbot \
     $staging_arg \
     $email_arg \
@@ -72,6 +75,6 @@ docker compose run --rm --entrypoint "\
     --force-renewal" certbot
 
 echo "### Перезагружаю nginx ..."
-docker compose exec nginx nginx -s reload
+$dc exec nginx nginx -s reload
 
 echo "### Готово. Откройте https://${domains[0]}"

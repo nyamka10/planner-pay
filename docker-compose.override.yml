@@ -1,0 +1,10 @@
+# Локальная разработка. Этот файл применяется автоматически при `docker compose up`
+# (без указания -f). Публикует приложение напрямую на порт 8000 — nginx и certbot
+# не нужны (они в профиле prod и без --profile не стартуют).
+#
+# В проде override НЕ используется — там запуск явный:
+#   docker compose -f docker-compose.yml --profile prod up -d
+services:
+  web:
+    ports:
+      - "${APP_PORT:-8000}:8000"
